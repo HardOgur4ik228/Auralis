@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Auralis — local audio & video to text studio powered by faster-whisper.">
+  <title>Auralis · Speech → Text Studio</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="page">
+
+    <!-- ================= TOP BAR ================= -->
+    <header class="topbar">
+      <div class="wrap topbar__inner">
+        <a class="brand" href="/" aria-label="Auralis home">
+          <span class="brand__mark" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="currentColor">
+              <rect x="2.5"  y="8"  width="2.4" height="4.5" rx="1.2"/>
+              <rect x="7.4"  y="4"  width="2.4" height="12"  rx="1.2"/>
+              <rect x="12.3" y="6.5" width="2.4" height="7"  rx="1.2"/>
+              <rect x="17.2" y="10" width="2.4" height="3.5" rx="1.2"/>
+            </svg>
+          </span>
+          <span class="brand__text">
+            <strong>AURALIS</strong>
+            <small data-i18n="brand.tag">Speech → Text Studio</small>
+          </span>
+        </a>
+
+        <div class="topbar__right">
+          <span class="status" id="statusPill" title="">
+            <span class="status__dot" id="statusDot"></span>
+            <span id="statusText" data-i18n="status.checking">Checking server…</span>
+          </span>
+
+          <div class="segment" role="group" aria-label="Interface language">
+            <button type="button" class="segment__btn is-active" data-lang="en">EN</button>
+            <button type="button" class="segment__btn" data-lang="ru">RU</button>
+          </div>
+
+          <button type="button" class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Theme">
+            <svg viewBox="0 0 24 24" class="ico-sun" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+            </svg>
+            <svg viewBox="0 0 24 24" class="ico-moon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+            </svg>
+          </button>
+
+          <button type="button" class="link-btn" id="helpBtn" data-i18n="action.help">How to run</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+
+      <!-- ================= HERO ================= -->
+      <section class="hero">
+        <p class="hero__eyebrow" data-i18n="hero.eyebrow">Local transcription engine</p>
+        <h1 class="hero__title">
+          <span data-i18n="hero.line1">Turn voice into</span><br>
+          <span class="mark" data-i18n="hero.line2">clean text</span>
+        </h1>
+        <p class="hero__sub" data-i18n="hero.sub">
+          Drop an audio or video file. Auralis extracts the track, transcribes it
+          with faster-whisper and hands you a tidy transcript with timestamps —
+          entirely on your machine.
+        </p>
+        <ul class="hero__facts">
+          <li data-i18n="hero.tag1">faster-whisper</li>
+          <li data-i18n="hero.tag2">100+ languages</li>
+          <li data-i18n="hero.tag3">TXT · SRT · VTT · JSON</li>
+          <li data-i18n="hero.tag4">Runs offline</li>
+        </ul>
+      </section>
+
+      <!-- ================= WORKSPACE ================= -->
+      <div class="workspace">
+
+        <!-- ---------- SOURCE ---------- -->
+        <section class="card card--source" aria-labelledby="sourceTitle">
+          <div class="card__head">
+            <span class="step-badge">01</span>
+            <div>
+              <h2 id="sourceTitle" data-i18n="source.title">Source</h2>
+              <p class="card__sub" data-i18n="source.sub">Pick a file and set the options</p>
+            </div>
+          </div>
+
+          <div class="dropzone" id="dropzone" role="button" tabindex="0"
+               aria-label="Upload audio or video" data-i18n-aria="drop.aria">
+            <span class="dropzone__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 16V4M12 4l-4 4M12 4l4 4"/>
+                <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+              </svg>
+            </span>
+            <p class="dropzone__title" data-i18n="drop.title">Drag &amp; drop a file here</p>
+            <p class="dropzone__hint" data-i18n="drop.hint">or click to browse</p>
+            <p class="dropzone__formats" id="formatsLine"></p>
+            <input type="file" id="fileInput" hidden>
+          </div>
+
+          <!-- selected file -->
+          <div class="filechip" id="fileChip" hidden>
+            <span class="filechip__ext" id="fileExt">FILE</span>
+            <span class="filechip__meta">
+              <strong id="fileName">—</strong>
+              <small id="fileSize">—</small>
+            </span>
+            <button type="button" class="filechip__remove" id="fileRemove" aria-label="Remove file">×</button>
+          </div>
+
+          <!-- real client-side waveform -->
+          <figure class="waveform" id="waveform" hidden>
+            <canvas id="waveCanvas" height="64"></canvas>
+            <figcaption id="waveCaption" data-i18n="wave.caption">Audio preview — waveform</figcaption>
+          </figure>
+
+          <!-- options -->
+          <div class="options">
+            <div class="field">
+              <label for="langSelect" data-i18n="field.language">Language</label>
+              <div class="select-wrap">
+                <select id="langSelect" class="select"></select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="modelSelect" data-i18n="field.model">Model</label>
+              <div class="select-wrap">
+                <select id="modelSelect" class="select"></select>
+              </div>
+            </div>
+
+            <div class="field field--full">
+              <label for="taskSelect" data-i18n="field.task">Task</label>
+              <div class="select-wrap">
+                <select id="taskSelect" class="select">
+                  <option value="transcribe" data-i18n="task.transcribe">Transcribe</option>
+                  <option value="translate" data-i18n="task.translate">Translate to English</option>
+                </select>
+              </div>
+            </div>
+
+            <details class="advanced" id="advanced">
+              <summary data-i18n="field.advanced">Advanced settings</summary>
+              <div class="advanced__body">
+                <label class="switch">
+                  <input type="checkbox" id="optVad" checked>
+                  <span class="switch__ui" aria-hidden="true"></span>
+                  <span class="switch__label">
+                    <strong data-i18n="opt.vad">Voice activity filter</strong>
+                    <small data-i18n="opt.vadHint">Skip silence for cleaner results</small>
+                  </span>
+                </label>
+
+                <label class="switch">
+                  <input type="checkbox" id="optWords">
+                  <span class="switch__ui" aria-hidden="true"></span>
+                  <span class="switch__label">
+                    <strong data-i18n="opt.words">Word-level timestamps</strong>
+                    <small data-i18n="opt.wordsHint">Precise timing for each word</small>
+                  </span>
+                </label>
+
+                <div class="field advanced__field">
+                  <label for="optBatch" data-i18n="opt.batch">Batch size</label>
+                  <div class="select-wrap">
+                    <select id="optBatch" class="select">
+                      <option value="16">16 · fastest</option>
+                      <option value="8" selected>8 · balanced</option>
+                      <option value="4">4 · light</option>
+                      <option value="0" data-i18n="opt.batchOff">Off · sequential</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <button type="button" class="btn btn--primary btn--wide" id="startBtn" disabled>
+            <span data-i18n="action.start">Transcribe</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+          <p class="card__note" data-i18n="source.note">Everything runs locally — nothing is uploaded to any cloud.</p>
+        </section>
+
+        <!-- ---------- STUDIO ---------- -->
+        <section class="card card--studio" aria-labelledby="studioTitle">
+          <div class="card__head">
+            <span class="step-badge">02</span>
+            <div>
+              <h2 id="studioTitle" data-i18n="studio.title">Studio</h2>
+              <p class="card__sub" id="studioSub" data-i18n="studio.idle">Waiting for a file</p>
+            </div>
+            <span class="card__badge" id="langBadge" hidden></span>
+          </div>
+
+          <!-- empty -->
+          <div class="state state--empty" id="stateEmpty">
+            <span class="empty-mark" aria-hidden="true">
+              <svg viewBox="0 0 40 24" fill="currentColor">
+                <rect x="0.5"  y="10" width="2.6" height="4"  rx="1.3"/>
+                <rect x="4.9"  y="5"  width="2.6" height="14" rx="1.3"/>
+                <rect x="9.3"  y="8"  width="2.6" height="8"  rx="1.3"/>
+                <rect x="13.7" y="2"  width="2.6" height="20" rx="1.3"/>
+                <rect x="18.1" y="7"  width="2.6" height="10" rx="1.3"/>
+                <rect x="22.5" y="4"  width="2.6" height="16" rx="1.3"/>
+                <rect x="26.9" y="9"  width="2.6" height="6"  rx="1.3"/>
+                <rect x="31.3" y="6"  width="2.6" height="12" rx="1.3"/>
+                <rect x="35.7" y="11" width="2.6" height="3"  rx="1.3"/>
+              </svg>
+            </span>
+            <h3 data-i18n="empty.title">Your transcript appears here</h3>
+            <p data-i18n="empty.sub">Choose a file on the left and press Transcribe. Live progress and the result show up in this panel.</p>
+          </div>
+
+          <!-- progress -->
+          <div class="state state--progress" id="stateProgress" hidden>
+            <div class="stepper" id="stepper">
+              <div class="stepper__item" data-stage="extracting">
+                <span class="stepper__dot"></span>
+                <span class="stepper__label" data-i18n="step.extract">Extract audio</span>
+              </div>
+              <div class="stepper__item" data-stage="loading">
+                <span class="stepper__dot"></span>
+                <span class="stepper__label" data-i18n="step.load">Load model</span>
+              </div>
+              <div class="stepper__item" data-stage="transcribing">
+                <span class="stepper__dot"></span>
+                <span class="stepper__label" data-i18n="step.transcribe">Transcribe</span>
+              </div>
+            </div>
+
+            <div class="progress__head">
+              <span class="progress__pct" id="progressPct">0<small>%</small></span>
+              <span class="progress__status" id="progressStatus">…</span>
+            </div>
+            <div class="progress__bar"><span class="progress__fill" id="progressFill"></span></div>
+            <div class="progress__meta" id="progressMeta"></div>
+
+            <button type="button" class="btn btn--danger" id="cancelBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+              <span data-i18n="action.cancel">Cancel</span>
+            </button>
+          </div>
+
+          <!-- error -->
+          <div class="state state--error" id="stateError" hidden>
+            <div class="state__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+              </svg>
+            </div>
+            <h3 data-i18n="err.title">Something went wrong</h3>
+            <p id="errorMessage">—</p>
+            <details class="error__details" id="errorDetails" hidden>
+              <summary data-i18n="err.details">Technical details</summary>
+              <pre id="errorDetail"></pre>
+            </details>
+            <button type="button" class="btn btn--ghost" id="retryBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+              <span data-i18n="action.retry">Try again</span>
+            </button>
+          </div>
+
+          <!-- result -->
+          <div class="state state--result" id="stateResult" hidden>
+            <div class="result__stats" id="resultStats"></div>
+
+            <div class="tabs" role="tablist">
+              <button type="button" class="tab is-active" role="tab" data-tab="text" data-i18n="tab.text">Text</button>
+              <button type="button" class="tab" role="tab" data-tab="timeline" data-i18n="tab.timeline">Timeline</button>
+            </div>
+
+            <div class="tabpanes">
+              <div class="pane" id="paneText" role="tabpanel"><div class="transcript" id="transcriptText"></div></div>
+              <div class="pane" id="paneTimeline" role="tabpanel" hidden><div class="timeline" id="transcriptTimeline"></div></div>
+            </div>
+
+            <div class="result__actions">
+              <button type="button" class="btn btn--primary" id="copyBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                <span data-i18n="action.copy">Copy text</span>
+              </button>
+
+              <div class="menu" id="downloadMenu">
+                <button type="button" class="btn btn--outline" id="downloadBtn" aria-expanded="false" aria-haspopup="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M12 15l-4-4M12 15l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                  <span data-i18n="action.download">Download</span>
+                  <svg class="menu__caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div class="menu__list" role="menu" id="downloadList">
+                  <button type="button" class="menu__item" data-format="txt" role="menuitem"><span>TXT</span><small data-i18n="fmt.txt">Plain text</small></button>
+                  <button type="button" class="menu__item" data-format="srt" role="menuitem"><span>SRT</span><small data-i18n="fmt.srt">Subtitles</small></button>
+                  <button type="button" class="menu__item" data-format="vtt" role="menuitem"><span>VTT</span><small data-i18n="fmt.vtt">Web subtitles</small></button>
+                  <button type="button" class="menu__item" data-format="json" role="menuitem"><span>JSON</span><small data-i18n="fmt.json">Full data</small></button>
+                </div>
+              </div>
+
+              <button type="button" class="btn btn--ghost" id="newBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                <span data-i18n="action.new">New file</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- ================= FOOTER ================= -->
+    <footer class="footer">
+      <div class="wrap footer__inner">
+        <span>
+          <span data-i18n="footer.built">Built with</span>
+          <strong>Flask · faster-whisper · ffmpeg</strong>
+        </span>
+        <span>
+          <span data-i18n="footer.local">Runs 100% locally</span>
+        </span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- toasts -->
+  <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+  <!-- help modal -->
+  <div class="modal" id="helpModal" hidden>
+    <div class="modal__overlay" data-close></div>
+    <div class="modal__card" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="modal__head">
+        <h3 id="helpTitle" data-i18n="help.title">Quick start</h3>
+        <button type="button" class="icon-btn" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal__body">
+        <h4 data-i18n="help.reqTitle">Requirements</h4>
+        <p data-i18n="help.req">Python 3.9+ and ffmpeg available on PATH.</p>
+
+        <h4 data-i18n="help.installTitle">1 · Install dependencies</h4>
+        <pre><code>pip install -r requirements.txt</code></pre>
+
+        <h4 data-i18n="help.ffmpegTitle">2 · Install ffmpeg</h4>
+        <pre><code>Windows : https://www.gyan.dev/ffmpeg/builds/
+macOS   : brew install ffmpeg
+Linux   : sudo apt install ffmpeg</code></pre>
+
+        <h4 data-i18n="help.runTitle">3 · Run</h4>
+        <pre><code>python app.py</code></pre>
+        <p data-i18n="help.run">Then open http://127.0.0.1:5000 in your browser. You can also run app.py directly from PyCharm.</p>
+
+        <h4 data-i18n="help.notesTitle">Notes</h4>
+        <p data-i18n="help.notes">The Whisper model downloads automatically on first use. large-v3 is the most accurate but the heaviest. Set AURALIS_DEVICE=cuda to use a GPU.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Auralis client configuration.
+    //   ""          -> same server as the frontend (local run: python app.py)
+    //   "https://…" -> your remote Flask API when the UI is hosted on a
+    //                  static host (GitHub Pages / Cloudflare Pages)
+    window.AURALIS = { apiBase: "https://auralis-a3vg.onrender.com" };
+  </script>
+  <script src="js/app.js"></script>
+</body>
+</html>
