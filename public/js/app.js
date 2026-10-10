@@ -561,26 +561,28 @@
     return peaks;
   }
 
+  function waveColor() {
+    const cs = getComputedStyle(document.documentElement);
+    return (cs.getPropertyValue("--wave-fill") || "#8a8172").trim();
+  }
+
   function drawPeaks(canvas, peaks) {
     if (!peaks) return;
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.parentElement.clientWidth - 28;
-    const h = 72;
+    const h = 64;
     canvas.width = Math.max(1, w * dpr);
     canvas.height = h * dpr;
     canvas.style.width = "100%";
     const ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    const grad = ctx.createLinearGradient(0, 0, w, 0);
-    grad.addColorStop(0, "#6f6bff");
-    grad.addColorStop(0.5, "#38bdf8");
-    grad.addColorStop(1, "#22d3ee");
-    ctx.fillStyle = grad;
+    ctx.fillStyle = waveColor();
     const barW = w / peaks.length;
     const mid = h / 2;
+    const maxBar = Math.max.apply(null, Array.from(peaks).concat([0.08]));
     for (let i = 0; i < peaks.length; i++) {
-      const bh = Math.max(1.2, peaks[i] * mid * 0.94);
+      const bh = Math.max(1.2, (peaks[i] / maxBar) * mid * 0.9);
       ctx.fillRect(i * barW + barW * 0.18, mid - bh, Math.max(1, barW * 0.64), bh * 2);
     }
   }
