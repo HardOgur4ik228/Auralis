@@ -1,0 +1,2 @@
+flask>=3.0
+faster-whisper>=1.1
