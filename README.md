@@ -64,14 +64,14 @@ Then open **http://127.0.0.1:5000** in your browser.
 3. Open `app.py`, click the green ▶ next to `if __name__ == "__main__"`.
 4. Browse to the URL printed in the run console.
 
-## 🌐 Deployment — Cloudflare Pages + a Python host
+## 🌐 Deployment — static frontend (Pages / GitHub Pages) + a Python host
 
 The UI is plain HTML/CSS/JS, but the backend is **Python + faster-whisper (ML)
-+ ffmpeg**. Cloudflare Pages is static hosting and cannot execute Python
-(and a Worker has no room for a Whisper model), so use a two-part setup:
++ ffmpeg**. Static hosts cannot execute Python (and a Worker/Edge runtime has
+no room for a Whisper model), so use a two-part setup:
 
 ```
-public/                      →  Cloudflare Pages   (static site)
+public/                      →  Cloudflare Pages or GitHub Pages   (static site)
 app.py + transcription.py    →  Python host        (Render / Fly.io / HF Spaces / VPS)
 ```
 
@@ -115,6 +115,33 @@ npx wrangler pages deploy public --project-name auralis-web --branch preview
 > Cloudflare Pages itself has no separate "Deploy command" and "Preview
 > command" fields — deploys are automatic from Git and previews are automatic
 > per branch/PR. The commands above reproduce that behaviour from your machine.
+
+### 2b · Frontend on GitHub Pages (optional alternative)
+
+GitHub Pages serves the site from a **subpath**: for this repo the URL is
+`https://<your-username>.github.io/Auralis/`. That is why `public/index.html`
+uses **relative** asset paths (`css/styles.css`, `js/app.js`), which work both
+at the local root and inside the subpath.
+
+A ready GitHub Actions workflow is included at
+`.github/workflows/pages.yml`. To enable it:
+
+1. **Settings → Pages → Build and deployment → Source: *GitHub Actions***.
+2. Push the workflow (it deploys on every push to `main`; you can also run it
+   manually from the **Actions** tab via *Run workflow*).
+3. Wait ~1 minute, then open `https://<your-username>.github.io/Auralis/`.
+
+> Optional manual alternative: **Settings → Pages → Deploy from a branch**.
+> Create a branch containing the `public/` files at the root (e.g.
+> `git subtree push --prefix public origin gh-pages`) and select it as the
+> source. The workflow above is simpler — it deploys automatically.
+
+Without GitHub Actions, the manual equivalent from your machine:
+
+```bash
+# from the repo root: publish the public/ folder as a gh-pages branch
+git subtree push --prefix public origin gh-pages
+```
 
 ### 3 · Point the frontend at the API
 
@@ -186,9 +213,10 @@ Optional environment variables:
 
 ```
 Auralis/
-├── public/              # static site — deployed to Cloudflare Pages
+├── .github/workflows/pages.yml   # automated GitHub Pages deploy (Actions)
+├── public/              # static site — deployed to Cloudflare Pages / GitHub Pages
 │   ├── index.html       # markup + client config (window.AURALIS.apiBase)
-│   ├── css/styles.css   # design system, themes, animations, responsive
+│   ├── css/styles.css   # design system, themes, responsive
 │   ├── js/app.js        # i18n, upload, SSE, results, exports
 │   └── favicon.svg
 ├── app.py               # Flask web layer: routes, validation, SSE, CORS
