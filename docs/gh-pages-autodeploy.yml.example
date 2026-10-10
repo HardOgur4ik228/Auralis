@@ -1,0 +1,57 @@
+# =============================================================================
+# Deploy the Auralis frontend (public/) to GitHub Pages.
+#
+# GitHub Pages is static hosting: it serves HTML/CSS/JS but cannot run the
+# Python/Flask API. Deploy the backend separately and set its URL in
+# public/index.html -> window.AURALIS.apiBase (see README -> Deployment).
+#
+# Site URL (project site, served from a subpath):
+#   https://<your-username>.github.io/Auralis/
+#
+# HOW TO ACTIVATE (requires GitHub workflow scope):
+#   1. Copy this file to  .github/workflows/pages.yml  in the repo.
+#   2. Push it, then enable: Settings -> Pages -> Source: "GitHub Actions".
+#   3. Every push to main re-deploys automatically. Without the workflow
+#      scope, use instead the helper script:
+#        scripts/deploy-gh-pages.ps1
+# =============================================================================
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:   # allows manual re-deploy from the Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # No build step: public/ is already a ready static site (plain HTML/CSS/JS).
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

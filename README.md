@@ -123,25 +123,29 @@ GitHub Pages serves the site from a **subpath**: for this repo the URL is
 uses **relative** asset paths (`css/styles.css`, `js/app.js`), which work both
 at the local root and inside the subpath.
 
-A ready GitHub Actions workflow is included at
-`.github/workflows/pages.yml`. To enable it:
+**Deploy from a branch (recommended, no extra permissions):**
 
-1. **Settings → Pages → Build and deployment → Source: *GitHub Actions***.
-2. Push the workflow (it deploys on every push to `main`; you can also run it
-   manually from the **Actions** tab via *Run workflow*).
+1. `Settings → Pages → Build and deployment → Source: *Deploy from a branch*`
+   → Branch: `gh-pages` → folder `/ (root)` → Save.
+2. The `gh-pages` branch is already in the repo with the site at its root.
 3. Wait ~1 minute, then open `https://<your-username>.github.io/Auralis/`.
 
-> Optional manual alternative: **Settings → Pages → Deploy from a branch**.
-> Create a branch containing the `public/` files at the root (e.g.
-> `git subtree push --prefix public origin gh-pages`) and select it as the
-> source. The workflow above is simpler — it deploys automatically.
+To re-deploy after changing `public/`, run from the repo root:
 
-Without GitHub Actions, the manual equivalent from your machine:
-
-```bash
-# from the repo root: publish the public/ folder as a gh-pages branch
-git subtree push --prefix public origin gh-pages
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/deploy-gh-pages.ps1
 ```
+
+**Auto-deploy on every push (requires GitHub *workflow* scope):**
+
+1. Copy `docs/gh-pages-autodeploy.yml.example` to `.github/workflows/pages.yml`
+   and push. GitHub rejects this push until your token has the **workflow**
+   scope — re-authenticate with `gh auth login --scopes workflow`.
+2. `Settings → Pages → Source: *GitHub Actions*`.
+3. Every push to `main` re-deploys automatically.
+
+> Manual alternative: `git subtree push --prefix public origin gh-pages`
+> revives/re-writes the `gh-pages` branch from `public/` without a script.
 
 ### 3 · Point the frontend at the API
 
@@ -213,7 +217,8 @@ Optional environment variables:
 
 ```
 Auralis/
-├── .github/workflows/pages.yml   # automated GitHub Pages deploy (Actions)
+├── docs/gh-pages-autodeploy.yml.example   # GitHub Actions workflow (move to .github/workflows/ to activate)
+├── scripts/deploy-gh-pages.ps1            # publish public/ -> gh-pages branch (no workflow scope needed)
 ├── public/              # static site — deployed to Cloudflare Pages / GitHub Pages
 │   ├── index.html       # markup + client config (window.AURALIS.apiBase)
 │   ├── css/styles.css   # design system, themes, responsive
