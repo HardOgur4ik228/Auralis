@@ -64,6 +64,82 @@ Then open **http://127.0.0.1:5000** in your browser.
 3. Open `app.py`, click the green ▶ next to `if __name__ == "__main__"`.
 4. Browse to the URL printed in the run console.
 
+## 🌐 Deployment — Cloudflare Pages + a Python host
+
+The UI is plain HTML/CSS/JS, but the backend is **Python + faster-whisper (ML)
++ ffmpeg**. Cloudflare Pages is static hosting and cannot execute Python
+(and a Worker has no room for a Whisper model), so use a two-part setup:
+
+```
+public/                      →  Cloudflare Pages   (static site)
+app.py + transcription.py    →  Python host        (Render / Fly.io / HF Spaces / VPS)
+```
+
+The browser UI calls the backend over HTTPS. CORS is already enabled in
+`app.py`. Only one setting needs your backend URL — see step 3.
+
+### 1 · Backend on Render (easiest)
+
+1. Push this repo to GitHub.
+2. Go to **render.com → New → Blueprint** and connect the repo
+   (or New → Web Service and pick the `Dockerfile`).
+3. Render builds the container: Python + ffmpeg + faster-whisper.
+4. Default env vars from `render.yaml`: `AURALIS_MODEL=base`,
+   `AURALIS_DEVICE=cpu`, `AURALIS_MAX_JOBS=1`.
+5. Copy the service URL, e.g. `https://auralis-api.onrender.com`.
+
+### 2 · Frontend on Cloudflare Pages
+
+**Via dashboard (recommended):**
+
+1. **Workers & Pages → Create → Pages → Connect to Git** → pick the repo.
+2. Framework preset: **None**.
+3. **Build command:** leave **empty** — there is nothing to compile.
+4. **Build output directory:** `public`.
+5. Deploy. Every push to `main` redeploys; pull requests automatically get
+   their own **preview URL**.
+
+**Deploy / preview commands (equivalent, via the CLI):**
+
+```bash
+# production build on Pages (usually not needed — dashboard does this for you)
+echo "static site — nothing to build"
+
+# production deploy  (dashboard equivalent)
+npx wrangler pages deploy public --project-name auralis-web --branch main
+
+# preview deploy
+npx wrangler pages deploy public --project-name auralis-web --branch preview
+```
+
+> Cloudflare Pages itself has no separate "Deploy command" and "Preview
+> command" fields — deploys are automatic from Git and previews are automatic
+> per branch/PR. The commands above reproduce that behaviour from your machine.
+
+### 3 · Point the frontend at the API
+
+In `public/index.html`:
+
+```js
+window.AURALIS = { apiBase: "" };   // "" = same server (local run)
+```
+
+Replace the empty string with your backend URL:
+
+```js
+window.AURALIS = { apiBase: "https://auralis-api.onrender.com" };
+```
+
+Push the change — Pages redeploys and the app works from any browser.
+
+### Notes & limits
+
+- Free tiers **sleep after idle**: the first request is slow (cold start).
+- Start with model `base` or `small`; `large-v3` needs a lot of RAM.
+- The model downloads on the first transcription (takes a minute or two).
+- The upload limit is 1 GB (`AURALIS_MAX_UPLOAD`); hosting platforms usually
+  allow less per request, so keep files moderate.
+
 ## 🕹 Usage
 
 1. Drag an audio/video file onto the drop zone (or click to browse).
@@ -91,6 +167,10 @@ Optional environment variables:
 | `AURALIS_MAX_UPLOAD` | `1073741824` | Max upload size in bytes (1 GB)        |
 | `AURALIS_DEBUG`   | `0`            | `1` enables Flask debug mode             |
 
+> On hosting platforms the listening port is injected as `$PORT` and takes
+> priority over `AURALIS_PORT`; `AURALIS_HOST` defaults to `0.0.0.0` in the
+> Docker image.
+
 ## 🔌 API
 
 | Method | Endpoint                          | Purpose                          |
@@ -106,15 +186,16 @@ Optional environment variables:
 
 ```
 Auralis/
-├── app.py               # Flask web layer: routes, validation, SSE, downloads
-├── transcription.py     # Engine: ffmpeg, faster-whisper, jobs, exports
-├── templates/
-│   └── index.html       # Semantic markup
-├── static/
-│   ├── css/styles.css   # Design system, themes, animations, responsive
+├── public/              # static site — deployed to Cloudflare Pages
+│   ├── index.html       # markup + client config (window.AURALIS.apiBase)
+│   ├── css/styles.css   # design system, themes, animations, responsive
 │   ├── js/app.js        # i18n, upload, SSE, results, exports
 │   └── favicon.svg
-├── requirements.txt
+├── app.py               # Flask web layer: routes, validation, SSE, CORS
+├── transcription.py     # Engine: ffmpeg, faster-whisper, jobs, exports
+├── Dockerfile           # container for the API (Render / Fly.io / …)
+├── render.yaml          # one-click Render blueprint
+├── requirements.txt     # flask + faster-whisper + gunicorn
 ├── LICENSE
 └── README.md
 ```

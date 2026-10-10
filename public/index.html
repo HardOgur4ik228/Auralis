@@ -7,13 +7,13 @@
   <meta name="description" content="Auralis — local audio & video to text studio powered by faster-whisper.">
   <title>Auralis · Speech → Text Studio</title>
 
-  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
   <!-- decorative background -->
@@ -197,7 +197,7 @@
           <span data-i18n="action.start">Transcribe</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </button>
-        <p class="card__note" id="sourceNote" data-i18n="source.note">Everything runs locally — nothing is uploaded to any cloud.</p>
+        <p class="card__note" data-i18n="source.note">Everything runs locally — nothing is uploaded to any cloud.</p>
       </section>
 
       <!-- ---------- STUDIO ---------- -->
@@ -351,6 +351,13 @@ Linux   : sudo apt install ffmpeg</code></pre>
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script>
+    // Auralis client configuration.
+    //   ""          -> same server as the frontend (local run: python app.py)
+    //   "https://…" -> your remote Flask API when the UI is hosted on
+    //                  Cloudflare Pages (see README → Deployment)
+    window.AURALIS = { apiBase: "" };
+  </script>
+  <script src="/js/app.js"></script>
 </body>
 </html>

@@ -296,6 +296,12 @@
     return s;
   };
 
+  // API base. On Cloudflare Pages the UI lives on one host and the Flask
+  // backend on another, so the frontend must know where the API is.
+  const API_BASE = (window.AURALIS && window.AURALIS.apiBase)
+    ? String(window.AURALIS.apiBase).replace(/\/+$/, "")
+    : "";
+
   function formatBytes(bytes) {
     if (bytes < 1024) return `${bytes} B`;
     const units = ["KB", "MB", "GB"];
@@ -407,7 +413,7 @@
 
   async function fetchHealth() {
     try {
-      const res = await fetch("/api/health");
+      const res = await fetch(API_BASE + "/api/health");
       if (!res.ok) throw new Error("health failed");
       state.health = await res.json();
       populateOptions();
@@ -668,7 +674,7 @@
     state.finished = false;
 
     try {
-      const res = await fetch("/api/jobs", { method: "POST", body: fd });
+      const res = await fetch(API_BASE + "/api/jobs", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         showError(data.error || "unknown", data.detail || "");
@@ -683,7 +689,7 @@
 
   function listen(id) {
     if (state.es) state.es.close();
-    const es = new EventSource(`/api/jobs/${id}/stream`);
+    const es = new EventSource(`${API_BASE}/api/jobs/${id}/stream`);
     state.es = es;
 
     es.onmessage = (ev) => {
@@ -715,7 +721,7 @@
 
   async function finalize(id) {
     try {
-      const res = await fetch(`/api/jobs/${id}`);
+      const res = await fetch(API_BASE + `/api/jobs/${id}`);
       const data = await res.json();
       state.result = data;
 
@@ -843,7 +849,7 @@
   function download(format) {
     if (!state.jobId) return;
     const a = document.createElement("a");
-    a.href = `/api/jobs/${state.jobId}/download?format=${format}`;
+    a.href = `${API_BASE}/api/jobs/${state.jobId}/download?format=${format}`;
     a.rel = "noopener";
     document.body.appendChild(a);
     a.click();
@@ -852,7 +858,7 @@
 
   async function cancel() {
     if (!state.jobId) return;
-    try { await fetch(`/api/jobs/${state.jobId}`, { method: "DELETE" }); } catch (e) { /* ignore */ }
+    try { await fetch(API_BASE + `/api/jobs/${state.jobId}`, { method: "DELETE" }); } catch (e) { /* ignore */ }
     if (state.es) { state.es.close(); state.es = null; }
     $("#studioSub").textContent = t("studio.canceled");
     toast(t("toast.canceled"), "info");

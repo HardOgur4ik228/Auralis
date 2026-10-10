@@ -2,10 +2,14 @@
 """
 Auralis — Flask web layer.
 
-Only HTTP concerns live here: routing, validation, JSON/SSE serialisation and
-file downloads.  All transcription logic is delegated to ``transcription.py``.
+Project layout:
+    public/             static site served by Flask locally AND by Cloudflare
+                        Pages in production (index.html, css/, js/, favicon)
+    app.py              HTTP: routing, validation, SSE, downloads, CORS
+    transcription.py    engine: ffmpeg, faster-whisper, jobs, export formats
 
-Run:  python app.py
+Run locally:   python app.py
+Run on a host: gunicorn app:app  (see Dockerfile / README → Deployment)
 """
 
 from __future__ import annotations
@@ -18,14 +22,14 @@ import time
 from pathlib import Path
 
 from flask import (
-    Flask, Response, jsonify, render_template, request, send_file,
+    Flask, Response, jsonify, request, send_file, send_from_directory,
 )
 
 import transcription as engine_mod
 
 
 # --------------------------------------------------------------------------- #
-#  Logging
+#  Logging & config
 # --------------------------------------------------------------------------- #
 
 logging.basicConfig(
@@ -36,24 +40,37 @@ logging.basicConfig(
 logger = logging.getLogger("auralis.web")
 
 BASE_DIR = Path(__file__).resolve().parent
+PUBLIC_DIR = BASE_DIR / "public"
 WORK_DIR = Path(os.environ.get("AURALIS_WORK", BASE_DIR / "auralis_work"))
 HOST = os.environ.get("AURALIS_HOST", "127.0.0.1")
-PORT = int(os.environ.get("AURALIS_PORT", "5000"))
+# Cloud hosts (Render, Fly, ...) inject the port via $PORT.
+PORT = int(os.environ.get("PORT") or os.environ.get("AURALIS_PORT") or "5000")
 DEBUG = os.environ.get("AURALIS_DEBUG", "0") == "1"
 
 manager = engine_mod.Manager(WORK_DIR)
 
 
 # --------------------------------------------------------------------------- #
-#  App
+#  App factory
 # --------------------------------------------------------------------------- #
 
 def create_app() -> Flask:
-    app = Flask(__name__, static_folder="static", template_folder="templates")
+    # public/ is mounted at the site root: /css/styles.css, /js/app.js, ...
+    app = Flask(__name__, static_folder="public", static_url_path="")
     app.config["MAX_CONTENT_LENGTH"] = engine_mod.MAX_UPLOAD_BYTES
     app.config["JSON_AS_ASCII"] = False
 
-    # ---- error handlers -------------------------------------------------- #
+    # ---- CORS: the UI may live on Cloudflare Pages while this API is on
+    #      another host. For a personal tool an open policy is fine. --------- #
+    @app.after_request
+    def _cors(resp):
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+        resp.headers["Access-Control-Max-Age"] = "600"
+        return resp
+
+    # ---- error handlers --------------------------------------------------- #
 
     @app.errorhandler(413)
     def _too_large(_):
@@ -61,23 +78,23 @@ def create_app() -> Flask:
                           f"File is larger than {engine_mod.MAX_UPLOAD_BYTES} bytes.")
 
     @app.errorhandler(404)
-    def _not_found(err):
+    def _not_found(_):
         if request.path.startswith("/api/"):
             return _api_error("not_found", 404, "Resource not found.")
-        return render_template("index.html"), 200
+        return send_from_directory(PUBLIC_DIR, "index.html")
 
     @app.errorhandler(500)
-    def _server_error(err):
+    def _server_error(_):
         logger.exception("Server error")
         return _api_error("server_error", 500, "Internal server error.")
 
-    # ---- pages ----------------------------------------------------------- #
+    # ---- pages ------------------------------------------------------------ #
 
     @app.get("/")
     def index():
-        return render_template("index.html")
+        return send_from_directory(PUBLIC_DIR, "index.html")
 
-    # ---- API ------------------------------------------------------------- #
+    # ---- API -------------------------------------------------------------- #
 
     @app.get("/api/health")
     def health():
@@ -245,9 +262,9 @@ def _parse_options(form) -> dict:
     }
 
 
-# --------------------------------------------------------------------------- #
-#  Entry point
-# --------------------------------------------------------------------------- #
+# Module-level WSGI app so `gunicorn app:app` works out of the box AND
+# `python app.py` uses the very same instance.
+app = create_app()
 
 BANNER = r"""
    _   _   _ ___  ___ _    ___ ___
@@ -271,9 +288,9 @@ def main() -> None:
     print(f"  device : {manager.engine.device} / {manager.engine.compute_type}")
     print(f"  model  : {engine_mod.DEFAULT_MODEL} (default)")
     print(f"  work   : {WORK_DIR}")
+    print(f"  ui     : served from {PUBLIC_DIR}")
     print(f"\n  Open in your browser ->  http://{HOST}:{PORT}\n")
 
-    app = create_app()
     try:
         app.run(host=HOST, port=PORT, debug=DEBUG, threaded=True,
                 use_reloader=False)

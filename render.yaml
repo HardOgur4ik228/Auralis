@@ -1,0 +1,18 @@
+# Render blueprint — one-click backend deploy from this repo.
+# Frontend goes to Cloudflare Pages separately (see README → Deployment).
+services:
+  - type: web
+    name: auralis-api
+    runtime: docker
+    repo: https://github.com/HardOgur4ik228/Auralis.git
+    plan: free
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: AURALIS_MODEL
+        value: base
+      - key: AURALIS_DEVICE
+        value: cpu
+      - key: AURALIS_MAX_JOBS
+        value: "1"
