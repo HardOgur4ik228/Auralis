@@ -368,9 +368,9 @@ Linux   : sudo apt install ffmpeg</code></pre>
   <script>
     // Auralis client configuration.
     //   ""          -> same server as the frontend (local run: python app.py)
-    //   "https://…" -> your remote Flask API when the UI is hosted on
-    //                  Cloudflare Pages (see README → Deployment)
-    window.AURALIS = { apiBase: "" };
+    //   "https://…" -> your remote Flask API when the UI is hosted on a
+    //                  static host (GitHub Pages / Cloudflare Pages)
+    window.AURALIS = { apiBase: "https://auralis-a3vg.onrender.com" };
   </script>
   <script src="js/app.js"></script>
 </body>
